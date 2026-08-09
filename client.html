@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>芒芒简餐 · 点餐</title>
+  <style>
+    :root {
+      --bg: #1A1A1A;
+      --bg2: #222222;
+      --bg3: #2C2C2C;
+      --fg: rgba(255,255,255,0.9);
+      --fg2: rgba(255,255,255,0.5);
+      --fg3: rgba(255,255,255,0.3);
+      --mango: #FFA726;
+      --mango2: #FF9800;
+      --mango3: #F57C00;
+      --green: #66BB6A;
+      --red: #EF5350;
+      --sep: rgba(255,255,255,0.08);
+      --nav-h: 44px;
+      --tab-h: 56px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 导航栏 */
+    .nav {
+      background: var(--bg2);
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      position: relative;
+      border-bottom: 0.5px solid var(--sep);
+      flex-shrink: 0;
+    }
+
+    .nav-title {
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    .nav-back {
+      position: absolute;
+      left: 12px;
+      background: none;
+      border: none;
+      color: var(--mango);
+      font-size: 15px;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 搜索栏 */
+    .search {
+      background: var(--bg2);
+      padding: 8px 16px;
+      border-bottom: 0.5px solid var(--sep);
+      flex-shrink: 0;
+    }
+
+    .search-box {
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-box span {
+      font-size: 14px;
+      color: var(--fg3);
+    }
+
+    /* 分类标签 */
+    .tabs {
+      background: var(--bg2);
+      display: flex;
+      padding: 0 12px;
+      border-bottom: 0.5px solid var(--sep);
+      overflow-x: auto;
+      flex-shrink: 0;
+      gap: 0;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--fg2);
+      cursor: pointer;
+      border: none;
+      background: none;
+      white-space: nowrap;
+      position: relative;
+      font-family: inherit;
+      transition: color 0.2s;
+    }
+
+    .tab.active {
+      color: var(--mango);
+      font-weight: 500;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 2px;
+      background: var(--mango);
+      border-radius: 1px;
+    }
+
+    /* 内容 */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    .cells {
+      background: var(--bg2);
+      margin-top: 8px;
+    }
+
+    .cell {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 0.5px solid var(--sep);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .cell:last-child { border-bottom: none; }
+
+    .cell:active { background: var(--bg3); }
+
+    .cell-hd {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    .cell-bd {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cell-title {
+      font-size: 16px;
+      color: var(--fg);
+      margin-bottom: 3px;
+    }
+
+    .cell-desc {
+      font-size: 12px;
+      color: var(--fg2);
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cell-price {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--mango);
+    }
+
+    .cell-ft {
+      flex-shrink: 0;
+      margin-left: 10px;
+    }
+
+    .btn-add {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--mango2);
+      color: #1A1A1A;
+      border: none;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-add:active { transform: scale(0.9); background: var(--mango3); }
+
+    .btn-add.added {
+      background: var(--green);
+      color: white;
+    }
+
+    /* 空状态 */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--fg2);
+    }
+
+    .empty-icon { font-size: 56px; margin-bottom: 14px; opacity: 0.6; }
+
+    /* 底部Tab */
+    .tabbar {
+      background: var(--bg2);
+      display: flex;
+      border-top: 0.5px solid var(--sep);
+      height: var(--tab-h);
+      flex-shrink: 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .tabbar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+      color: var(--fg2);
+      font-size: 10px;
+      position: relative;
+    }
+
+    .tabbar-item.active { color: var(--mango); }
+
+    .tabbar-icon { font-size: 22px; position: relative; }
+
+    .badge {
+      position: absolute;
+      top: -5px;
+      right: -14px;
+      background: var(--red);
+      color: white;
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      min-width: 16px;
+      text-align: center;
+      display: none;
+    }
+
+    .badge.show { display: block; }
+
+    /* 购物车弹窗 */
+    .mask {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .mask.show { display: flex; }
+
+    .sheet {
+      background: var(--bg2);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 14px 14px 0 0;
+      padding: 18px 16px 28px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-title {
+      font-size: 15px;
+      text-align: center;
+      color: var(--fg2);
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 0.5px solid var(--sep);
+    }
+
+    .sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .sheet-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      gap: 8px;
+    }
+
+    .sheet-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sheet-name {
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sheet-price {
+      color: var(--mango);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .sheet-del {
+      color: var(--red);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px 8px;
+      background: none;
+      border: none;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .sheet-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      font-weight: 500;
+      border-top: 0.5px solid var(--sep);
+    }
+
+    .sheet-total-price {
+      color: var(--mango);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .btn-checkout {
+      background: var(--mango2);
+      color: #1A1A1A;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .btn-checkout:active { background: var(--mango3); }
+
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 2000;
+      pointer-events: none;
+      animation: toastAnim 1.8s forwards;
+    }
+
+    @keyframes toastAnim {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 导航栏 -->
+  <div class="nav">
+    <button class="nav-back" onclick="window.open('index.html','_self')">← 首页</button>
+    <div class="nav-title">🥭 芒芒简餐</div>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search">
+    <div class="search-box">
+      <span>🔍</span>
+      <span>搜索芒果甜品...</span>
+    </div>
+  </div>
+
+  <!-- 分类标签 -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-cat="all">🔥 全部</button>
+    <button class="tab" data-cat="芒果甜品">🥭 芒果甜品</button>
+    <button class="tab" data-cat="芒果饮品">🥤 芒果饮品</button>
+    <button class="tab" data-cat="芒果简餐">🍽️ 芒果简餐</button>
+    <button class="tab" data-cat="小食">🍟 小食</button>
+  </div>
+
+  <!-- 商品列表 -->
+  <div class="content" id="productList">
+    <div class="cells"></div>
+  </div>
+
+  <!-- 底部Tab -->
+  <div class="tabbar">
+    <button class="tabbar-item active" id="tabMenu">
+      <span class="tabbar-icon">🍽️</span>
+      <span>菜单</span>
+    </button>
+    <button class="tabbar-item" id="tabCart">
+      <span class="tabbar-icon">
+        🛒
+        <span class="badge" id="cartBadge">0</span>
+      </span>
+      <span>购物车</span>
+    </button>
+    <button class="tabbar-item" id="tabOrder">
+      <span class="tabbar-icon">📋</span>
+      <span>订单</span>
+    </button>
+    <button class="tabbar-item" id="tabMe">
+      <span class="tabbar-icon">👤</span>
+      <span>我的</span>
+    </button>
+  </div>
+
+  <!-- 购物车弹窗 -->
+  <div class="mask" id="cartMask">
+    <div class="sheet">
+      <div class="sheet-title">🛒 购物车</div>
+      <div class="sheet-body" id="cartBody"></div>
+      <div class="sheet-total">
+        <span>合计</span>
+        <span class="sheet-total-price" id="cartTotal">¥0.00</span>
+      </div>
+      <button class="btn-checkout" id="checkoutBtn">立即下单</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const SK = 'mango_menu', CK = 'mango_cart';
+      const defs = [
+        { id: '1', name: '招牌芒果绵绵冰', cat: '芒果甜品', price: '28.0', emoji: '🍧', desc: '新鲜芒果·绵密冰沙' },
+        { id: '2', name: '芒果椰奶西米露', cat: '芒果甜品', price: '22.0', emoji: '🥥', desc: '椰香浓郁·Q弹西米' },
+        { id: '3', name: '芒果班戟', cat: '芒果甜品', price: '18.0', emoji: '🥞', desc: '薄皮包裹·奶油芒果' },
+        { id: '4', name: '芒果双皮奶', cat: '芒果甜品', price: '16.0', emoji: '🍮', desc: '嫩滑双皮奶·芒果粒' },
+        { id: '5', name: '芒果冰沙', cat: '芒果饮品', price: '20.0', emoji: '🥤', desc: '冰爽芒果·夏日必备' },
+        { id: '6', name: '芒果乳酸菌', cat: '芒果饮品', price: '18.0', emoji: '🧃', desc: '益生菌·芒果果肉' },
+        { id: '7', name: '芒果糯米饭', cat: '芒果简餐', price: '26.0', emoji: '🍚', desc: '泰国风味·椰浆糯米' },
+        { id: '8', name: '芒果鲜虾沙拉', cat: '芒果简餐', price: '32.0', emoji: '🥗', desc: '鲜虾·芒果·蔬菜' },
+        { id: '9', name: '芒果鸡肉卷', cat: '芒果简餐', price: '24.0', emoji: '🌯', desc: '鸡肉·芒果·薄饼' },
+        { id: '10', name: '炸薯条', cat: '小食', price: '12.0', emoji: '🍟', desc: '金黄酥脆薯条' },
+        { id: '11', name: '鸡米花', cat: '小食', price: '15.0', emoji: '🍗', desc: '香酥鸡米花' },
+        { id: '12', name: '芒果布丁', cat: '芒果甜品', price: '14.0', emoji: '🍬', desc: 'Q弹布丁·芒果酱' }
+      ];
+
+      function loadP() { const s=localStorage.getItem(SK); if(s){try{const p=JSON.parse(s);if(Array.isArray(p)&&p.length)return p;}catch(e){}} localStorage.setItem(SK,JSON.stringify(defs)); return [...defs]; }
+      function getCart() { const s=localStorage.getItem(CK); return s?JSON.parse(s):[]; }
+      function saveCart(c) { localStorage.setItem(CK,JSON.stringify(c)); updateBadge(); }
+      function addToCart(p) { const c=getCart(); const e=c.find(i=>i.id===p.id); if(e)e.qty++; else c.push({...p,qty:1}); saveCart(c); toast('已加入购物车 🥭'); }
+      function removeCart(id) { saveCart(getCart().filter(i=>i.id!==id)); }
+      function total(c) { return c.reduce((t,i)=>t+parseFloat(i.price)*i.qty,0).toFixed(2); }
+      function inCart(id) { return getCart().some(i=>i.id===id); }
+
+      function updateBadge() {
+        const t=getCart().reduce((s,i)=>s+i.qty,0);
+        const b=document.getElementById('cartBadge');
+        if(t>0){b.textContent=t;b.classList.add('show');}else{b.classList.remove('show');}
+      }
+
+      let products=loadP(), curCat='all';
+      const listEl=document.getElementById('productList');
+
+      function render(cat) {
+        const filtered=cat==='all'?products:products.filter(p=>p.cat===cat);
+        const cells=document.createElement('div'); cells.className='cells';
+        if(filtered.length===0){
+          cells.innerHTML='<div class="empty"><div class="empty-icon">🥭</div><p>该分类暂无商品</p></div>';
+        }else{
+          cells.innerHTML=filtered.map(p=>{
+            const added=inCart(p.id);
+            return `<div class="cell">
+              <div class="cell-hd">${p.emoji||'🥭'}</div>
+              <div class="cell-bd">
+                <div class="cell-title">${p.name}</div>
+                <div class="cell-desc">${p.desc||''}</div>
+                <div class="cell-price">¥${parseFloat(p.price).toFixed(2)}</div>
+              </div>
+              <div class="cell-ft">
+                <button class="btn-add ${added?'added':''}" data-id="${p.id}">${added?'✓':'+'}</button>
+              </div>
+            </div>`;
+          }).join('');
+        }
+        listEl.innerHTML=''; listEl.appendChild(cells);
+        listEl.querySelectorAll('.btn-add').forEach(b=>{
+          b.addEventListener('click',(e)=>{ e.stopPropagation(); const p=products.find(x=>x.id===b.dataset.id); if(p){addToCart(p);render(curCat);} });
+        });
+      }
+
+      document.querySelectorAll('.tab').forEach(t=>{
+        t.addEventListener('click',function(){
+          document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+          this.classList.add('active'); curCat=this.dataset.cat; render(curCat);
+        });
+      });
+
+      const mask=document.getElementById('cartMask');
+      document.getElementById('tabCart').addEventListener('click',()=>{ renderCart(); mask.classList.add('show'); });
+      mask.addEventListener('click',(e)=>{ if(e.target===mask) mask.classList.remove('show'); });
+
+      function renderCart(){
+        const c=getCart(), body=document.getElementById('cartBody');
+        if(c.length===0){ body.innerHTML='<div style="text-align:center;padding:24px;color:var(--fg2);">购物车空空如也～</div>'; }
+        else{ body.innerHTML=c.map(i=>`<div class="sheet-cell"><div class="sheet-info"><span style="font-size:24px;">${i.emoji||'🥭'}</span><span class="sheet-name">${i.name} x${i.qty}</span></div><span class="sheet-price">¥${(parseFloat(i.price)*i.qty).toFixed(2)}</span><button class="sheet-del" data-id="${i.id}">删除</button></div>`).join('');
+          body.querySelectorAll('.sheet-del').forEach(b=>b.addEventListener('click',()=>{removeCart(b.dataset.id);renderCart();render(curCat);}));
+        }
+        document.getElementById('cartTotal').textContent='¥'+total(c);
+      }
+
+      document.getElementById('checkoutBtn').addEventListener('click',()=>{
+        const c=getCart(); if(c.length===0){toast('购物车为空');return;}
+        alert('✅ 订单已提交！\n\n'+c.map(i=>`${i.emoji} ${i.name} x${i.qty}  ¥${(parseFloat(i.price)*i.qty).toFixed(2)}`).join('\n')+'\n\n💰 总计：¥'+total(c)+'\n\n感谢光临芒芒简餐 🥭');
+        saveCart([]); mask.classList.remove('show'); render(curCat);
+      });
+
+      document.getElementById('tabOrder').addEventListener('click',()=>{ toast('暂无订单记录'); });
+      document.getElementById('tabMe').addEventListener('click',()=>{ toast('个人中心开发中'); });
+
+      function toast(m){ const t=document.createElement('div'); t.className='toast'; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),1800); }
+      window.addEventListener('storage',(e)=>{ if(e.key===SK){products=loadP();render(curCat);} if(e.key===CK)updateBadge(); });
+      updateBadge(); render('all');
+    })();
+  </script>
+</body>
+</html>
