@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>芒芒简餐 · 商户扫码</title>
+  <style>
+    :root {
+      --bg: #1A1A1A; --bg2: #222222; --bg3: #2C2C2C;
+      --fg: rgba(255,255,255,0.9); --fg2: rgba(255,255,255,0.5);
+      --mango: #FFA726; --mango2: #FF9800; --green: #66BB6A; --red: #EF5350;
+      --sep: rgba(255,255,255,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--fg); height: 100vh; display: flex; flex-direction: column;
+    }
+    .nav {
+      background: var(--bg2); height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 16px; border-bottom: 0.5px solid var(--sep); flex-shrink: 0;
+    }
+    .nav-back { background: none; border: none; color: var(--mango); font-size: 15px; cursor: pointer; font-family: inherit; }
+    .nav-title { font-size: 17px; font-weight: 500; }
+    .content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 20px; }
+    .scanner-box {
+      width: 100%; max-width: 320px; aspect-ratio: 1; background: var(--bg2);
+      border-radius: 16px; border: 2px solid var(--sep); overflow: hidden; position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scanner-box video { width: 100%; height: 100%; object-fit: cover; }
+    .scanner-box .placeholder { color: var(--fg2); text-align: center; padding: 20px; }
+    .scanner-box .placeholder .icon { font-size: 48px; margin-bottom: 12px; }
+    .btn-scan {
+      background: var(--mango2); color: #1A1A1A; border: none; padding: 16px 40px;
+      border-radius: 12px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-scan:active { background: var(--mango3); transform: scale(0.96); }
+    .btn-scan:disabled { background: #555; color: #999; }
+    .result-box {
+      background: var(--bg2); border-radius: 12px; padding: 20px; width: 100%; max-width: 320px;
+      text-align: center; display: none;
+    }
+    .result-box.success { display: block; border: 2px solid var(--green); }
+    .result-box.fail { display: block; border: 2px solid var(--red); }
+    .result-icon { font-size: 40px; margin-bottom: 8px; }
+    .result-text { font-size: 16px; font-weight: 600; }
+    .result-detail { font-size: 12px; color: var(--fg2); margin-top: 6px; }
+    .status-bar {
+      background: var(--bg2); padding: 12px 16px; border-radius: 8px;
+      display: flex; align-items: center; gap: 8px; font-size: 13px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.online { background: var(--green); }
+    .status-dot.offline { background: var(--red); }
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85); color: #fff; padding: 10px 22px; border-radius: 8px;
+      font-size: 14px; z-index: 2000; pointer-events: none; animation: toastAnim 1.8s forwards;
+    }
+    @keyframes toastAnim {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; } 100% { opacity: 0; }
+    }
+  </style>
+  <!-- CDN扫码库 -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js">
+  </script>
+</head>
+<body>
+  <div class="nav">
+    <button class="nav-back" onclick="window.open('index.html','_self')">← 首页</button>
+    <div class="nav-title">📷 商户扫码核销</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="content">
+    <div class="status-bar">
+      <div class="status-dot online" id="statusDot"></div>
+      <span id="statusText">正在加载商户密钥...</span>
+    </div>
+    <div class="scanner-box" id="scannerBox">
+      <video id="video" autoplay playsinline style="display:none;"></video>
+      <div class="placeholder" id="placeholder">
+        <div class="icon">📷</div>
+        <p>点击下方按钮开启摄像头</p>
+      </div>
+    </div>
+    <button class="btn-scan" id="btnScan">📷 开始扫码</button>
+    <button class="btn-scan" id="btnStop" style="display:none;background:#555;">⏹️ 停止扫描</button>
+    <div class="result-box" id="resultBox">
+      <div class="result-icon" id="resultIcon"></div>
+      <div class="result-text" id="resultText"></div>
+      <div class="result-detail" id="resultDetail"></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const DB_URL = 'lib_memory.log';
+      const COUP_KEY = 'mango_coupon_used';
+      const VALID_COUPON = 'MANGO_COUPON_2024_001';
+
+      let stream = null;
+      let merchantKey = null;
+      let scanInterval = null;
+
+      const video = document.getElementById('video');
+      const placeholder = document.getElementById('placeholder');
+      const btnScan = document.getElementById('btnScan');
+      const btnStop = document.getElementById('btnStop');
+      const resultBox = document.getElementById('resultBox');
+      const resultIcon = document.getElementById('resultIcon');
+      const resultText = document.getElementById('resultText');
+      const resultDetail = document.getElementById('resultDetail');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+
+      // 从lib_memory.log加载商户密钥
+      async function loadMerchantKey() {
+        try {
+          const resp = await fetch(DB_URL);
+          if (resp.ok) {
+            const text = await resp.text();
+            const data = JSON.parse(text);
+            if (data.merchant_keys && data.merchant_keys.length > 0) {
+              merchantKey = data.merchant_keys[0];
+              statusDot.className = 'status-dot online';
+              statusText.textContent = '商户密钥已加载 ✅';
+              return true;
+            }
+          }
+          statusDot.className = 'status-dot offline';
+          statusText.textContent = '未找到商户密钥 ❌';
+          return false;
+        } catch (e) {
+          statusDot.className = 'status-dot offline';
+          statusText.textContent = '加载数据库失败 ❌';
+          return false;
+        }
+      }
+
+      // 开启摄像头
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          video.srcObject = stream;
+          video.style.display = 'block';
+          placeholder.style.display = 'none';
+          btnScan.style.display = 'none';
+          btnStop.style.display = 'inline-block';
+          resultBox.className = 'result-box';
+          startScanning();
+        } catch (e) {
+          toast('无法访问摄像头，请检查权限');
+        }
+      }
+
+      // 停止摄像头
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
+        }
+        if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+        video.style.display = 'none';
+        placeholder.style.display = 'block';
+        btnScan.style.display = 'inline-block';
+        btnStop.style.display = 'none';
+      }
+
+      // 扫码检测
+      function startScanning() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        scanInterval = setInterval(() => {
+          if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, canvas.width, canvas.height);
+          if (code) {
+            handleScanResult(code.data);
+          }
+        }, 500);
+      }
+
+      // 处理扫码结果
+      function handleScanResult(data) {
+        stopCamera();
+        if (!merchantKey) {
+          showResult('fail', '❌', '商户密钥未加载', '请刷新页面重试');
+          return;
+        }
+        // 验证是否是有效优惠券
+        if (data === VALID_COUPON) {
+          // 核销优惠券
+          localStorage.setItem(COUP_KEY, 'used');
+          showResult('success', '✅', '核销成功！', `优惠券码：${data}\n优惠券已标记为已使用`);
+        } else {
+          showResult('fail', '❌', '无效优惠券', `扫描结果：${data}\n不是有效的优惠券码`);
+        }
+      }
+
+      function showResult(type, icon, text, detail) {
+        resultBox.className = 'result-box ' + (type === 'success' ? 'success' : 'fail');
+        resultIcon.textContent = icon;
+        resultText.textContent = text;
+        resultDetail.textContent = detail;
+        setTimeout(() => { resultBox.className = 'result-box'; }, 5000);
+      }
+
+      btnScan.addEventListener('click', startCamera);
+      btnStop.addEventListener('click', stopCamera);
+
+      function toast(m) {
+        const t = document.createElement('div'); t.className = 'toast'; t.textContent = m;
+        document.body.appendChild(t); setTimeout(() => t.remove(), 1800);
+      }
+
+      // 初始化
+      loadMerchantKey();
+    })();
+  </script>
+</body>
+</html>
