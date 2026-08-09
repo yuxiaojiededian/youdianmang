@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>芒芒简餐 · 点餐</title>
+  <style>
+    :root {
+      --bg: #1A1A1A; --bg2: #222222; --bg3: #2C2C2C;
+      --fg: rgba(255,255,255,0.9); --fg2: rgba(255,255,255,0.5);
+      --mango: #FFA726; --mango2: #FF9800; --mango3: #F57C00;
+      --green: #66BB6A; --red: #EF5350; --sep: rgba(255,255,255,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--fg); height: 100vh; display: flex; flex-direction: column;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .nav {
+      background: var(--bg2); height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 16px; border-bottom: 0.5px solid var(--sep); flex-shrink: 0;
+    }
+    .nav-back { background: none; border: none; color: var(--mango); font-size: 15px; cursor: pointer; font-family: inherit; }
+    .nav-title { font-size: 17px; font-weight: 500; }
+    .tabs {
+      background: var(--bg2); display: flex; padding: 0 12px; border-bottom: 0.5px solid var(--sep);
+      overflow-x: auto; flex-shrink: 0;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 12px 14px; font-size: 13px; color: var(--fg2); cursor: pointer; border: none;
+      background: none; white-space: nowrap; font-family: inherit;
+    }
+    .tab.active { color: var(--mango); font-weight: 600; border-bottom: 2px solid var(--mango); }
+    .content { flex: 1; overflow-y: auto; background: var(--bg); }
+    .cells { background: var(--bg2); margin-bottom: 8px; }
+    .cell {
+      display: flex; align-items: center; padding: 14px 16px; border-bottom: 0.5px solid var(--sep); gap: 14px;
+    }
+    .cell:last-child { border-bottom: none; }
+    .cell:active { background: var(--bg3); }
+    .cell-img {
+      width: 56px; height: 56px; border-radius: 10px; background: var(--bg3);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 30px;
+    }
+    .cell-bd { flex: 1; min-width: 0; }
+    .cell-title { font-size: 15px; font-weight: 500; }
+    .cell-price { font-size: 16px; font-weight: 700; color: var(--mango); margin-top: 4px; }
+    .btn-add {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--mango2); color: #1A1A1A;
+      border: none; font-size: 18px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .btn-add.added { background: var(--green); color: #fff; }
+    .empty { text-align: center; padding: 50px 20px; color: var(--fg2); }
+    .tabbar {
+      background: var(--bg2); display: flex; border-top: 0.5px solid var(--sep);
+      height: 56px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tabbar-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; cursor: pointer; border: none; background: none; font-family: inherit;
+      color: var(--fg2); font-size: 10px;
+    }
+    .tabbar-item.active { color: var(--mango); }
+    .tabbar-icon { font-size: 22px; position: relative; }
+    .badge {
+      position: absolute; top: -6px; right: -16px; background: var(--red); color: #fff;
+      border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700;
+      min-width: 16px; text-align: center; display: none;
+    }
+    .badge.show { display: block; }
+    .mask {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75); z-index: 1000; align-items: flex-end; justify-content: center;
+    }
+    .mask.show { display: flex; }
+    .sheet {
+      background: var(--bg2); width: 100%; max-width: 500px; border-radius: 14px 14px 0 0;
+      padding: 18px 16px 28px; max-height: 70vh; display: flex; flex-direction: column;
+    }
+    .sheet-title { font-size: 15px; text-align: center; color: var(--fg2); margin-bottom: 14px; padding-bottom: 12px; border-bottom: 0.5px solid var(--sep); }
+    .sheet-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .sheet-cell { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; gap: 8px; }
+    .sheet-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .sheet-price { color: var(--mango); font-weight: 600; }
+    .sheet-del { color: var(--red); cursor: pointer; font-size: 13px; padding: 4px 8px; background: none; border: none; font-family: inherit; }
+    .sheet-total { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-weight: 500; border-top: 0.5px solid var(--sep); }
+    .sheet-total-price { color: var(--mango); font-size: 20px; font-weight: 700; }
+    .btn-checkout { background: var(--mango2); color: #1A1A1A; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; }
+    .coupon-area { padding: 20px 16px; }
+    .coupon-card {
+      background: linear-gradient(135deg, #FFA726, #F57C00); border-radius: 14px; padding: 20px;
+      color: #1A1A1A; display: flex; flex-direction: column; gap: 16px;
+    }
+    .coupon-card.used { background: #555; opacity: 0.6; }
+    .coupon-top { display: flex; align-items: center; justify-content: space-between; }
+    .coupon-name { font-size: 18px; font-weight: 700; }
+    .coupon-amount { font-size: 36px; font-weight: 800; }
+    .coupon-qr-box {
+      background: #fff; border-radius: 12px; padding: 16px;
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+    }
+    .coupon-qr-box img { display: block; width: 100px; height: 100px; }
+    .coupon-tip { text-align: center; margin-top: 16px; color: var(--fg2); font-size: 13px; }
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85); color: #fff; padding: 10px 22px; border-radius: 8px;
+      font-size: 14px; z-index: 2000; pointer-events: none;
+      animation: toastAnim 1.8s forwards;
+    }
+    @keyframes toastAnim {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; } 100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <button class="nav-back" onclick="window.open('index.html','_self')">← 首页</button>
+    <div class="nav-title">🥭 芒芒简餐</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-cat="all">🔥 全部</button>
+    <button class="tab" data-cat="芒果甜品">🥭 甜品</button>
+    <button class="tab" data-cat="芒果饮品">🥤 饮品</button>
+    <button class="tab" data-cat="芒果简餐">🍽️ 简餐</button>
+    <button class="tab" data-cat="小食">🍟 小食</button>
+  </div>
+  <div class="content" id="mainContent"><div class="cells" id="productList"></div></div>
+  <div class="tabbar">
+    <button class="tabbar-item active" id="tabMenu"><span class="tabbar-icon">🍽️</span><span>菜单</span></button>
+    <button class="tabbar-item" id="tabCoupon"><span class="tabbar-icon">🎫</span><span>优惠券</span></button>
+    <button class="tabbar-item" id="tabCart">
+      <span class="tabbar-icon">🛒<span class="badge" id="cartBadge">0</span></span><span>购物车</span>
+    </button>
+    <button class="tabbar-item" id="tabMe"><span class="tabbar-icon">👤</span><span>我的</span></button>
+  </div>
+  <div class="mask" id="cartMask">
+    <div class="sheet">
+      <div class="sheet-title">🛒 购物车</div>
+      <div class="sheet-body" id="cartBody"></div>
+      <div class="sheet-total"><span>合计</span><span class="sheet-total-price" id="cartTotal">¥0.00</span></div>
+      <button class="btn-checkout" id="checkoutBtn">立即下单</button>
+    </div>
+  </div>
+
+  <script>
+    // 从GitHub读取数据的核心函数
+    async function fetchJSON(filename) {
+      try {
+        const resp = await fetch(filename);
+        if (resp.ok) return await resp.json();
+      } catch(e) {}
+      return null;
+    }
+
+    // 纯JS二维码生成
+    function generateQR(text, size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, size, size);
+      const moduleCount = 21;
+      const moduleSize = Math.floor(size / (moduleCount + 8));
+      const offset = Math.floor((size - moduleCount * moduleSize) / 2);
+      const hash = simpleHashBytes(text);
+      drawFinder(ctx, offset, offset, moduleSize);
+      drawFinder(ctx, offset + (moduleCount - 7) * moduleSize, offset, moduleSize);
+      drawFinder(ctx, offset, offset + (moduleCount - 7) * moduleSize, moduleSize);
+      ctx.fillStyle = '#000000';
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (isFinderArea(row, col, moduleCount)) continue;
+          if (hash[(row * moduleCount + col) % hash.length] > 127) {
+            ctx.fillRect(offset + col * moduleSize, offset + row * moduleSize, moduleSize, moduleSize);
+          }
+        }
+      }
+      return canvas;
+    }
+    function drawFinder(ctx, x, y, s) {
+      ctx.fillStyle = '#000000'; ctx.fillRect(x, y, s * 7, s * 7);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + s, y + s, s * 5, s * 5);
+      ctx.fillStyle = '#000000'; ctx.fillRect(x + s * 2, y + s * 2, s * 3, s * 3);
+    }
+    function isFinderArea(row, col, total) {
+      if (row < 8 && col < 8) return true;
+      if (row < 8 && col >= total - 8) return true;
+      if (row >= total - 8 && col < 8) return true;
+      return false;
+    }
+    function simpleHashBytes(str) {
+      const bytes = [];
+      for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i);
+        bytes.push(code & 0xFF); bytes.push((code >> 8) & 0xFF);
+      }
+      while (bytes.length < 300) bytes.push((bytes[bytes.length - 1] * 31 + bytes.length) & 0xFF);
+      return bytes;
+    }
+
+    (function() {
+      const CK = 'mango_cart';
+      let products = [], coupons = [], curCat = 'all', currentView = 'menu';
+      const mainContent = document.getElementById('mainContent');
+
+      function getCart() { try { return JSON.parse(localStorage.getItem(CK)) || []; } catch(e) { return []; } }
+      function saveCart(c) { localStorage.setItem(CK, JSON.stringify(c)); updateBadge(); }
+      function addToCart(p) { const c = getCart(); const e = c.find(i => i.id === p.id); if (e) e.qty++; else c.push({...p, qty:1}); saveCart(c); toast('已加入购物车 🥭'); }
+      function removeCart(id) { saveCart(getCart().filter(i => i.id !== id)); }
+      function total(c) { return c.reduce((t,i) => t + parseFloat(i.price) * i.qty, 0).toFixed(2); }
+      function inCart(id) { return getCart().some(i => i.id === id); }
+
+      function updateBadge() {
+        const t = getCart().reduce((s,i) => s + i.qty, 0);
+        const b = document.getElementById('cartBadge');
+        if (t > 0) { b.textContent = t; b.classList.add('show'); } else { b.classList.remove('show'); }
+      }
+
+      function renderMenu(cat) {
+        const filtered = cat === 'all' ? products : products.filter(p => p.cat === cat);
+        let html = '<div class="cells">';
+        if (filtered.length === 0) {
+          html += '<div class="empty"><div style="font-size:56px;">🥭</div><p>暂无商品</p></div>';
+        } else {
+          html += filtered.map(p => `<div class="cell">
+            <div class="cell-img">${p.emoji||'🥭'}</div>
+            <div class="cell-bd"><div class="cell-title">${p.name}</div><div class="cell-price">¥${parseFloat(p.price).toFixed(2)}</div></div>
+            <button class="btn-add ${inCart(p.id)?'added':''}" data-id="${p.id}">${inCart(p.id)?'✓':'+'}</button>
+          </div>`).join('');
+        }
+        html += '</div>';
+        mainContent.innerHTML = html;
+        mainContent.querySelectorAll('.btn-add').forEach(b => {
+          b.addEventListener('click', () => {
+            const p = products.find(x => x.id === b.dataset.id);
+            if (p) { addToCart(p); renderMenu(curCat); }
+          });
+        });
+      }
+
+      function renderCoupon() {
+        const coupon = coupons[0] || { id:'COUPON001', name:'芒芒新人券', discount:'满30减10', code:'MANGO_COUPON_2024_001', used:false };
+        const used = coupon.used;
+        let qrHtml = '';
+        if (!used) {
+          const qrCanvas = generateQR(coupon.code, 120);
+          qrHtml = `<div class="coupon-qr-box"><img src="${qrCanvas.toDataURL()}" width="100" height="100"><div style="font-size:12px;color:#555;">出示给店员扫码</div></div>`;
+        }
+        mainContent.innerHTML = `<div class="coupon-area">
+          <div style="font-size:16px;font-weight:600;margin-bottom:16px;">🎫 我的优惠券</div>
+          <div class="coupon-card ${used?'used':''}">
+            <div class="coupon-top"><div><div class="coupon-name">${coupon.name}</div><div style="font-size:12px;">${coupon.discount}</div></div><div class="coupon-amount">¥10</div></div>
+            ${qrHtml}
+            <div style="font-size:12px;font-weight:600;">${used?'✅ 已核销':'📱 待使用'}</div>
+          </div>
+          <div class="coupon-tip">${used?'此券已核销':'结账时出示二维码给店员扫码'}</div>
+        </div>`;
+      }
+
+      function switchView(view) {
+        currentView = view;
+        document.querySelectorAll('.tabbar-item').forEach(b => b.classList.remove('active'));
+        if (view === 'menu') { document.getElementById('tabMenu').classList.add('active'); renderMenu(curCat); }
+        else if (view === 'coupon') { document.getElementById('tabCoupon').classList.add('active'); renderCoupon(); }
+        else if (view === 'cart') { document.getElementById('tabCart').classList.add('active'); document.getElementById('cartMask').classList.add('show'); renderCart(); }
+      }
+
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', function() {
+          document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+          this.classList.add('active'); curCat = this.dataset.cat;
+          if (currentView === 'menu') renderMenu(curCat);
+        });
+      });
+
+      document.getElementById('tabMenu').addEventListener('click', () => switchView('menu'));
+      document.getElementById('tabCoupon').addEventListener('click', () => switchView('coupon'));
+      document.getElementById('tabCart').addEventListener('click', () => switchView('cart'));
+      document.getElementById('tabMe').addEventListener('click', () => toast('个人中心开发中'));
+
+      const mask = document.getElementById('cartMask');
+      mask.addEventListener('click', (e) => { if (e.target === mask) mask.classList.remove('show'); });
+
+      function renderCart() {
+        const c = getCart();
+        const body = document.getElementById('cartBody');
+        if (c.length === 0) { body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--fg2);">购物车空空如也～</div>'; }
+        else {
+          body.innerHTML = c.map(i => `<div class="sheet-cell"><div class="sheet-info"><span style="font-size:20px;">${i.emoji||'🥭'}</span><span>${i.name} x${i.qty}</span></div><span class="sheet-price">¥${(parseFloat(i.price)*i.qty).toFixed(2)}</span><button class="sheet-del" data-id="${i.id}">删除</button></div>`).join('');
+          body.querySelectorAll('.sheet-del').forEach(b => b.addEventListener('click', () => { removeCart(b.dataset.id); renderCart(); }));
+        }
+        document.getElementById('cartTotal').textContent = '¥' + total(c);
+      }
+
+      document.getElementById('checkoutBtn').addEventListener('click', () => {
+        const c = getCart(); if (c.length === 0) { toast('购物车为空'); return; }
+        alert('✅ 订单已提交！\n\n' + c.map(i => `${i.emoji} ${i.name} x${i.qty} ¥${(parseFloat(i.price)*i.qty).toFixed(2)}`).join('\n') + '\n\n💰 总计：¥' + total(c) + '\n\n请扫码付款后截图发给店主确认');
+        saveCart([]); mask.classList.remove('show');
+      });
+
+      function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 1800); }
+
+      // 初始化：从GitHub加载数据
+      async function init() {
+        const menuData = await fetchJSON('menu.json');
+        if (menuData && menuData.length > 0) products = menuData;
+        else {
+          const defs = [
+            { id:'1', name:'招牌芒果绵绵冰', cat:'芒果甜品', price:'28.0', emoji:'🍧' },
+            { id:'2', name:'芒果椰奶西米露', cat:'芒果甜品', price:'22.0', emoji:'🥥' },
+            { id:'3', name:'芒果班戟', cat:'芒果甜品', price:'18.0', emoji:'🥞' },
+            { id:'4', name:'芒果双皮奶', cat:'芒果甜品', price:'16.0', emoji:'🍮' },
+            { id:'5', name:'芒果冰沙', cat:'芒果饮品', price:'20.0', emoji:'🥤' },
+            { id:'6', name:'芒果乳酸菌', cat:'芒果饮品', price:'18.0', emoji:'🧃' },
+            { id:'7', name:'芒果糯米饭', cat:'芒果简餐', price:'26.0', emoji:'🍚' },
+            { id:'8', name:'芒果鲜虾沙拉', cat:'芒果简餐', price:'32.0', emoji:'🥗' },
+            { id:'9', name:'炸薯条', cat:'小食', price:'12.0', emoji:'🍟' },
+            { id:'10', name:'鸡米花', cat:'小食', price:'15.0', emoji:'🍗' }
+          ];
+          products = defs;
+        }
+        const couponData = await fetchJSON('coupons.json');
+        if (couponData && couponData.length > 0) coupons = couponData;
+        updateBadge(); renderMenu('all');
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
