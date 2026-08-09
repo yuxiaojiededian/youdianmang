@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>芒芒简餐 · 管理后台</title>
+  <style>
+    :root {
+      --bg: #1A1A1A;
+      --bg2: #222222;
+      --bg3: #2C2C2C;
+      --fg: rgba(255,255,255,0.9);
+      --fg2: rgba(255,255,255,0.5);
+      --fg3: rgba(255,255,255,0.3);
+      --mango: #FFA726;
+      --mango2: #FF9800;
+      --mango3: #F57C00;
+      --red: #EF5350;
+      --green: #66BB6A;
+      --sep: rgba(255,255,255,0.08);
+      --nav-h: 44px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 密码验证遮罩 */
+    .password-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px;
+    }
+
+    .password-overlay.hidden {
+      display: none;
+    }
+
+    .password-box {
+      background: var(--bg2);
+      border-radius: 16px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .password-icon {
+      font-size: 48px;
+    }
+
+    .password-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--mango);
+    }
+
+    .password-input {
+      padding: 14px 16px;
+      border: 1.5px solid var(--sep);
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      background: var(--bg3);
+      color: var(--fg);
+      outline: none;
+      text-align: center;
+      letter-spacing: 4px;
+    }
+
+    .password-input:focus {
+      border-color: var(--mango);
+    }
+
+    .password-input::placeholder {
+      letter-spacing: 1px;
+      color: var(--fg3);
+    }
+
+    .password-btn {
+      background: var(--mango2);
+      color: #1A1A1A;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .password-btn:active {
+      background: var(--mango3);
+      transform: scale(0.97);
+    }
+
+    .password-error {
+      color: var(--red);
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    .password-hint {
+      font-size: 12px;
+      color: var(--fg2);
+    }
+
+    .nav {
+      background: var(--bg2);
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      position: relative;
+      border-bottom: 0.5px solid var(--sep);
+      flex-shrink: 0;
+    }
+
+    .nav-title { font-size: 17px; font-weight: 500; }
+
+    .nav-back {
+      position: absolute;
+      left: 12px;
+      background: none;
+      border: none;
+      color: var(--mango);
+      font-size: 15px;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-family: inherit;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .stat-num { font-size: 22px; font-weight: 700; color: var(--mango); }
+    .stat-label { font-size: 11px; color: var(--fg2); margin-top: 4px; }
+
+    .card {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .card h3 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: var(--mango);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      color: var(--fg2);
+    }
+
+    .form-group input, .form-group select {
+      padding: 11px 14px;
+      border: 1px solid var(--sep);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: var(--bg3);
+      color: var(--fg);
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--mango);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .btn:active { transform: scale(0.96); }
+
+    .btn-pri {
+      background: var(--mango2);
+      color: #1A1A1A;
+      flex: 1;
+    }
+
+    .btn-out {
+      background: transparent;
+      color: var(--mango);
+      border: 1.5px solid var(--mango);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 0.5px solid var(--sep);
+      gap: 12px;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+
+    .list-emoji {
+      font-size: 30px;
+      background: var(--bg3);
+      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .list-info { flex: 1; min-width: 0; }
+    .list-name { font-size: 15px; font-weight: 500; }
+    .list-meta { font-size: 12px; color: var(--fg2); margin-top: 2px; }
+    .list-price { font-weight: 600; color: var(--mango); margin-right: 6px; white-space: nowrap; }
+
+    .list-actions { display: flex; gap: 4px; }
+
+    .mini-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .mini-edit { background: rgba(255,167,38,0.15); color: var(--mango); }
+    .mini-del { background: rgba(239,83,80,0.15); color: var(--red); }
+
+    .empty-list { text-align: center; padding: 40px; color: var(--fg2); }
+
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 2000;
+      pointer-events: none;
+      animation: toastAnim 1.8s forwards;
+    }
+
+    @keyframes toastAnim {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 密码验证遮罩 -->
+  <div class="password-overlay" id="passwordOverlay">
+    <div class="password-box">
+      <div class="password-icon">🔐</div>
+      <div class="password-title">管理后台验证</div>
+      <input type="password" class="password-input" id="passwordInput" placeholder="请输入管理密码" maxlength="30" autocomplete="off">
+      <div class="password-error" id="passwordError"></div>
+      <button class="password-btn" id="passwordBtn">验证进入</button>
+      <div class="password-hint">输入密码以管理菜单</div>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="nav">
+    <button class="nav-back" onclick="window.open('index.html','_self')">← 首页</button>
+    <div class="nav-title">⚙️ 菜单管理</div>
+  </div>
+
+  <div class="content">
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="totalCount">0</div><div class="stat-label">菜品总数</div></div>
+      <div class="stat"><div class="stat-num" id="catCount">0</div><div class="stat-label">分类数</div></div>
+      <div class="stat"><div class="stat-num" id="avgPrice">¥0</div><div class="stat-label">均价</div></div>
+    </div>
+
+    <!-- 表单 -->
+    <div class="card">
+      <h3 id="formTitle">➕ 添加菜品</h3>
+      <input type="hidden" id="editId">
+      <div class="form-group"><label>菜品名称</label><input id="pName" placeholder="例：招牌芒果绵绵冰"></div>
+      <div class="form-group"><label>分类</label><select id="pCat"><option>芒果甜品</option><option>芒果饮品</option><option>芒果简餐</option><option>小食</option></select></div>
+      <div class="form-group"><label>价格 (元)</label><input id="pPrice" type="number" placeholder="28.0" step="0.01" min="0"></div>
+      <div class="form-group"><label>表情图标</label><input id="pEmoji" placeholder="🍧" maxlength="4"></div>
+      <div class="form-group"><label>简短描述</label><input id="pDesc" placeholder="新鲜芒果·绵密冰沙"></div>
+      <div class="btn-row">
+        <button class="btn btn-pri" id="btnAdd">添加菜品</button>
+        <button class="btn btn-pri" id="btnUpdate" style="display:none;">保存修改</button>
+        <button class="btn btn-out" id="btnCancel" style="display:none;">取消</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-out" id="btnReset">恢复默认菜单</button>
+        <button class="btn btn-danger" id="btnClear">清空全部</button>
+      </div>
+    </div>
+
+    <!-- 列表 -->
+    <div class="card" id="listContainer">
+      <div class="empty-list">加载中...</div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ========== 密码验证 ==========
+      const overlay = document.getElementById('passwordOverlay');
+      const pwdInput = document.getElementById('passwordInput');
+      const pwdBtn = document.getElementById('passwordBtn');
+      const pwdError = document.getElementById('passwordError');
+      let correctPassword = '';
+
+      // 从GitHub读取password.txt
+      async function fetchPassword() {
+        try {
+          const response = await fetch('password.txt');
+          if (response.ok) {
+            const text = await response.text();
+            correctPassword = text.trim();
+          } else {
+            pwdError.textContent = '无法加载密码文件';
+            correctPassword = '';
+          }
+        } catch (err) {
+          pwdError.textContent = '网络错误，请刷新重试';
+          correctPassword = '';
+        }
+      }
+
+      function checkPassword() {
+        const input = pwdInput.value.trim();
+        if (!input) {
+          pwdError.textContent = '请输入密码';
+          return;
+        }
+        if (input === correctPassword) {
+          overlay.classList.add('hidden');
+          pwdError.textContent = '';
+          // 密码正确，初始化管理界面
+          initAdmin();
+        } else {
+          pwdError.textContent = '密码错误，请重试';
+          pwdInput.value = '';
+          pwdInput.focus();
+        }
+      }
+
+      pwdBtn.addEventListener('click', checkPassword);
+      pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') checkPassword();
+      });
+
+      // 页面加载时先获取密码
+      fetchPassword().then(() => {
+        pwdInput.focus();
+      });
+
+      // ========== 管理功能 ==========
+      const KEY = 'mango_menu';
+      const defaults = [
+        { id: '1', name: '招牌芒果绵绵冰', cat: '芒果甜品', price: '28.0', emoji: '🍧', desc: '新鲜芒果·绵密冰沙' },
+        { id: '2', name: '芒果椰奶西米露', cat: '芒果甜品', price: '22.0', emoji: '🥥', desc: '椰香浓郁·Q弹西米' },
+        { id: '3', name: '芒果班戟', cat: '芒果甜品', price: '18.0', emoji: '🥞', desc: '薄皮包裹·奶油芒果' },
+        { id: '4', name: '芒果双皮奶', cat: '芒果甜品', price: '16.0', emoji: '🍮', desc: '嫩滑双皮奶·芒果粒' },
+        { id: '5', name: '芒果冰沙', cat: '芒果饮品', price: '20.0', emoji: '🥤', desc: '冰爽芒果·夏日必备' },
+        { id: '6', name: '芒果乳酸菌', cat: '芒果饮品', price: '18.0', emoji: '🧃', desc: '益生菌·芒果果肉' },
+        { id: '7', name: '芒果糯米饭', cat: '芒果简餐', price: '26.0', emoji: '🍚', desc: '泰国风味·椰浆糯米' },
+        { id: '8', name: '芒果鲜虾沙拉', cat: '芒果简餐', price: '32.0', emoji: '🥗', desc: '鲜虾·芒果·蔬菜' },
+        { id: '9', name: '芒果鸡肉卷', cat: '芒果简餐', price: '24.0', emoji: '🌯', desc: '鸡肉·芒果·薄饼' },
+        { id: '10', name: '炸薯条', cat: '小食', price: '12.0', emoji: '🍟', desc: '金黄酥脆薯条' },
+        { id: '11', name: '鸡米花', cat: '小食', price: '15.0', emoji: '🍗', desc: '香酥鸡米花' },
+        { id: '12', name: '芒果布丁', cat: '芒果甜品', price: '14.0', emoji: '🍬', desc: 'Q弹布丁·芒果酱' }
+      ];
+
+      function load() {
+        const s = localStorage.getItem(KEY);
+        if (s) { try { const p = JSON.parse(s); if (Array.isArray(p) && p.length) return p; } catch(e) {} }
+        localStorage.setItem(KEY, JSON.stringify(defaults)); return [...defaults];
+      }
+      function save(p) { localStorage.setItem(KEY, JSON.stringify(p)); }
+      function genId() { return Date.now().toString(36)+Math.random().toString(36).substr(2,6); }
+
+      function initAdmin() {
+        const nEl=document.getElementById('pName'), cEl=document.getElementById('pCat');
+        const pEl=document.getElementById('pPrice'), eEl=document.getElementById('pEmoji');
+        const dEl=document.getElementById('pDesc'), editId=document.getElementById('editId');
+        const btnAdd=document.getElementById('btnAdd'), btnUp=document.getElementById('btnUpdate');
+        const btnCancel=document.getElementById('btnCancel'), fTitle=document.getElementById('formTitle');
+        const listC=document.getElementById('listContainer');
+
+        function resetForm() {
+          nEl.value=''; pEl.value=''; eEl.value=''; dEl.value=''; cEl.value='芒果甜品';
+          editId.value=''; fTitle.textContent='➕ 添加菜品';
+          btnAdd.style.display=''; btnUp.style.display='none'; btnCancel.style.display='none';
+        }
+
+        function editProd(p) {
+          nEl.value=p.name; cEl.value=p.cat; pEl.value=p.price; eEl.value=p.emoji||''; dEl.value=p.desc||'';
+          editId.value=p.id; fTitle.textContent='✏️ 编辑菜品';
+          btnAdd.style.display='none'; btnUp.style.display=''; btnCancel.style.display='';
+        }
+
+        function updateStats(prods) {
+          document.getElementById('totalCount').textContent=prods.length;
+          document.getElementById('catCount').textContent=new Set(prods.map(p=>p.cat)).size;
+          const avg=prods.length?(prods.reduce((s,p)=>s+parseFloat(p.price||0),0)/prods.length).toFixed(1):'0';
+          document.getElementById('avgPrice').textContent='¥'+avg;
+        }
+
+        function renderList() {
+          const prods=load();
+          if(prods.length===0){
+            listC.innerHTML='<div class="empty-list">🥭 暂无菜品，请添加</div>';
+          }else{
+            listC.innerHTML=prods.map(p=>`
+              <div class="list-item">
+                <div class="list-emoji">${p.emoji||'🥭'}</div>
+                <div class="list-info"><div class="list-name">${p.name}</div><div class="list-meta">${p.cat} · ${p.desc||''}</div></div>
+                <div class="list-price">¥${parseFloat(p.price).toFixed(2)}</div>
+                <div class="list-actions">
+                  <button class="mini-btn mini-edit" data-id="${p.id}">编辑</button>
+                  <button class="mini-btn mini-del" data-id="${p.id}">删除</button>
+                </div>
+              </div>
+            `).join('');
+            listC.querySelectorAll('.mini-edit').forEach(b=>b.addEventListener('click',()=>{
+              const p=prods.find(x=>x.id===b.dataset.id); if(p) editProd(p);
+            }));
+            listC.querySelectorAll('.mini-del').forEach(b=>b.addEventListener('click',()=>{
+              if(confirm('确定删除这个菜品吗？')){ save(prods.filter(x=>x.id!==b.dataset.id)); renderList(); updateStats(load()); toast('已删除'); }
+            }));
+          }
+          updateStats(prods);
+        }
+
+        btnAdd.addEventListener('click',()=>{
+          const name=nEl.value.trim(); if(!name){toast('请输入菜品名称');return;}
+          const price=parseFloat(pEl.value); if(isNaN(price)||price<0){toast('请输入有效价格');return;}
+          const prods=load();
+          prods.push({id:genId(),name,cat:cEl.value,price:price.toFixed(2),emoji:eEl.value||'🥭',desc:dEl.value.trim()});
+          save(prods); resetForm(); renderList(); toast('✅ 菜品已添加');
+        });
+
+        btnUp.addEventListener('click',()=>{
+          const name=nEl.value.trim(); if(!name){toast('请输入菜品名称');return;}
+          const price=parseFloat(pEl.value); if(isNaN(price)||price<0){toast('请输入有效价格');return;}
+          const prods=load(); const idx=prods.findIndex(p=>p.id===editId.value);
+          if(idx>-1){prods[idx]={...prods[idx],name,cat:cEl.value,price:price.toFixed(2),emoji:eEl.value||'🥭',desc:dEl.value.trim()}; save(prods); resetForm(); renderList(); toast('✅ 已更新');}
+        });
+
+        btnCancel.addEventListener('click',resetForm);
+        document.getElementById('btnReset').addEventListener('click',()=>{if(confirm('恢复默认菜单？当前修改将丢失。')){save([...defaults]);resetForm();renderList();toast('🔄 已恢复默认');}});
+        document.getElementById('btnClear').addEventListener('click',()=>{if(confirm('⚠️ 确定清空全部菜品？')){save([]);resetForm();renderList();toast('🗑️ 已清空');}});
+
+        function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),1800);}
+        window.addEventListener('storage',(e)=>{if(e.key===KEY)renderList();});
+        renderList();
+      }
+    })();
+  </script>
+</body>
+</html>
